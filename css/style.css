@@ -258,3 +258,9 @@ figcaption { font-size: .82rem; margin-top: .4rem; font-family: var(--serif); }
 .welcome-wrap { position: relative; }
 .corner { position: absolute; top: 1.2rem; right: 1.2rem; font-size: .8rem; padding: .4em .8em; }
 .auth-cover .logo { background: var(--paper); border-radius: 50%; padding: 6px; }
+.err { font-weight: 600; }
+.err:not(:empty) { background: var(--red-soft); padding: .5em .75em; border-left: 3px solid var(--red); }
+.shake { animation: shake .3s; }
+@keyframes shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+.mode-note { margin-top: 2rem; font-size: .82rem; }
+button:disabled { opacity: .6; cursor: wait; }

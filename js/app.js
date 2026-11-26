@@ -86,12 +86,13 @@
           <button class="primary">가입하고 시작하기</button>
         </form>` : `
         <form data-form="login" class="form">
+          ${S.error ? `<p class="err">${esc(S.error)}</p>` : ""}
           <label>아이디<input name="username" required autocomplete="username"></label>
           <label>비밀번호<input name="password" type="password" required autocomplete="current-password"></label>
           <p class="err" data-err></p>
           <button class="primary">로그인</button>
         </form>
-        <div class="demo"><p>시연용 계정 — 학생 <code>student</code> / 교사 <code>teacher</code> (비밀번호 <code>1234</code>)</p><button class="ghost" data-act="seed">시연용 계정 만들기</button></div>`}
+        ${S.mode === "supabase" ? `<p class="muted mode-note">● 온라인 모드 · 계정이 없다면 <a href="#/signup">회원가입</a>부터 해 주세요.</p>` : `<div class="demo"><p>시연용 계정 — 학생 <code>student</code> / 교사 <code>teacher</code> (비밀번호 <code>1234</code>)</p><button class="ghost" data-act="seed">시연용 계정 다시 만들기</button><p>계정이 없다면 위의 <a href="#/signup">회원가입</a>부터 해 주세요.</p></div>`}`}
       </section>
     </div>`;
   }
@@ -312,12 +313,14 @@
       <form data-form="settings" class="form">
         <label>수업 이름<input name="className" value="${esc(s.className)}"></label>
         <label>1주차 시작일 <small>이 날짜를 기준으로 '이번 주차'가 계산됩니다</small><input name="startDate" type="date" value="${esc(s.startDate)}"></label>
-        <p class="muted">교사 가입 코드: <code>${S.TEACHER_CODE}</code> (js/store.js에서 변경)</p>
+        ${S.mode === "supabase" ? `<label>교사 가입 코드 <small>새 선생님이 가입할 때 입력하는 코드</small><input name="teacherCode" value="${esc(s.teacherCode || "")}"></label>` : `<p class="muted">교사 가입 코드: <code>${S.TEACHER_CODE}</code> (js/store.js에서 변경)</p>`}
         <div class="actions"><span class="saved" data-saved></span><button class="primary">저장</button></div>
       </form>
       <h3>데이터 백업</h3>
-      <p class="muted">현재 버전은 이 브라우저에 저장됩니다. 주기적으로 내보내기 해 두세요.</p>
-      <div class="row"><button class="ghost" data-act="export">JSON 내보내기</button><label class="ghost btn file">JSON 가져오기<input type="file" accept=".json" data-act="import" hidden></label><button class="ghost danger" data-act="reset">전체 초기화</button></div>
+      ${S.mode === "supabase"
+        ? `<p class="muted">● 온라인 모드 — 모든 기록이 Supabase에 저장됩니다. 학기 말에 한 번 내보내 보관해 두세요.</p><div class="row"><button class="ghost" data-act="export">JSON 내보내기</button></div>`
+        : `<p class="muted">○ 로컬 시연 모드 — 이 브라우저에만 저장됩니다. 주기적으로 내보내기 해 두세요.</p>
+      <div class="row"><button class="ghost" data-act="export">JSON 내보내기</button><label class="ghost btn file">JSON 가져오기<input type="file" accept=".json" data-act="import" hidden></label><button class="ghost danger" data-act="reset">전체 초기화</button></div>`}
     </section>`, "settings");
   }
 
@@ -343,7 +346,17 @@
     else if (r === "portfolio") $app.innerHTML = viewPortfolio(me);
     else $app.innerHTML = viewHome(me);
   }
-  window.addEventListener("hashchange", render);
+  window.addEventListener("hashchange", async () => {
+    if (S.mode === "supabase" && S.me()) await S.refresh(); // 다른 사람이 쓴 최신 기록 반영
+    render();
+  });
+  // 탭으로 돌아오면 최신 기록으로 갱신 (작성 중인 글이 없을 때만)
+  document.addEventListener("visibilitychange", async () => {
+    if (document.visibilityState !== "visible" || S.mode !== "supabase" || !S.me()) return;
+    const typing = document.activeElement && /TEXTAREA|INPUT/.test(document.activeElement.tagName);
+    if (typing) return;
+    await S.refresh(); render();
+  });
 
   const flash = (form, msg = "저장했습니다") => { const el = form.querySelector("[data-saved]"); if (el) { el.textContent = msg; setTimeout(() => (el.textContent = ""), 2000); } };
 
@@ -353,9 +366,12 @@
     const d = Object.fromEntries(new FormData(f));
     const err = f.querySelector("[data-err]");
     const me = S.me();
+    const btn = f.querySelector("button.primary");
+    if (btn) { if (btn.disabled) return; btn.disabled = true; btn.dataset.label = btn.textContent; btn.textContent = "저장 중…"; }
     try {
       switch (f.dataset.form) {
         case "login": {
+          await S.ready;
           const u = await S.login(d.username, d.password);
           go(u.role === "teacher" ? "#/teacher" : "#/welcome"); render(); break;
         }
@@ -364,19 +380,19 @@
           const u = await S.signup(d);
           go(u.role === "teacher" ? "#/teacher" : "#/welcome"); render(); break;
         }
-        case "goal-draft": S.addGoal(me.id, d.text, "초안", 1, me.id); render(); break;
-        case "goal-teacher": S.addGoal(f.dataset.uid, d.text, d.status, +d.week, me.id); render(); break;
+        case "goal-draft": await S.addGoal(me.id, d.text, "초안", 1, me.id); render(); break;
+        case "goal-teacher": await S.addGoal(f.dataset.uid, d.text, d.status, +d.week, me.id); render(); break;
         case "entry": {
           const labels = [...f.querySelectorAll("[name=vlabel]")].map((i) => i.value.trim());
           const videos = [...f.querySelectorAll("[name=vurl]")].map((i, k) => ({ label: labels[k], url: i.value.trim() })).filter((v) => v.url);
-          S.saveEntry(me.id, +f.dataset.week, { did: d.did, found: d.found, next: d.next, selfScore: d.selfScore ? +d.selfScore : null, videos, requestFeedback: !!d.requestFeedback });
+          await S.saveEntry(me.id, +f.dataset.week, { did: d.did, found: d.found, next: d.next, selfScore: d.selfScore ? +d.selfScore : null, videos, requestFeedback: !!d.requestFeedback });
           render(); flash(document.querySelector("[data-form=entry]")); break;
         }
-        case "feedback": S.addFeedback(f.dataset.uid, +f.dataset.week, me.id, d.text); render(); document.getElementById("w" + f.dataset.week)?.scrollIntoView(); break;
-        case "report": S.saveReport(me.id, d.text); flash(f); break;
-        case "settings": S.saveSettings({ className: d.className, startDate: d.startDate }); render(); flash(document.querySelector("[data-form=settings]")); break;
+        case "feedback": await S.addFeedback(f.dataset.uid, +f.dataset.week, me.id, d.text); render(); document.getElementById("w" + f.dataset.week)?.scrollIntoView(); break;
+        case "report": await S.saveReport(me.id, d.text); flash(f); break;
+        case "settings": await S.saveSettings({ className: d.className, startDate: d.startDate, teacherCode: d.teacherCode }); render(); flash(document.querySelector("[data-form=settings]")); break;
       }
-    } catch (e) { if (err) err.textContent = e.message; else alert(e.message); }
+    } catch (e) { if (btn && btn.isConnected) { btn.disabled = false; btn.textContent = btn.dataset.label; } if (err) { err.textContent = e.message; err.classList.remove("shake"); void err.offsetWidth; err.classList.add("shake"); } else alert(e.message); }
   });
 
   $app.addEventListener("click", async (ev) => {
@@ -407,5 +423,5 @@
     }
   });
 
-  render();
+  Promise.resolve(S.ready).catch(() => {}).then(render);
 })();

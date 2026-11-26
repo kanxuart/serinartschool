@@ -5,10 +5,34 @@
   const SESSION = "serin-session";
   const TEACHER_CODE = "SERIN2026"; // 교사 가입 코드 (README 참고)
 
-  async function hash(pw) {
-    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("serin:" + pw));
-    return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  // SHA-256 (브라우저 기능이 막힌 http 주소에서도 동작하도록 순수 JS 버전 사용)
+  function sha256(str) {
+    const K = [], H = [];
+    let n = 2, c = 0;
+    const frac = (x) => ((x - Math.floor(x)) * 4294967296) | 0;
+    while (c < 64) { let prime = true; for (let i = 2; i * i <= n; i++) if (n % i === 0) { prime = false; break; } if (prime) { if (c < 8) H[c] = frac(Math.pow(n, 1 / 2)); K[c++] = frac(Math.pow(n, 1 / 3)); } n++; }
+    const bytes = new TextEncoder().encode(str);
+    const len = bytes.length, words = [];
+    for (let i = 0; i < len; i++) words[i >> 2] |= bytes[i] << (24 - (i % 4) * 8);
+    words[len >> 2] |= 0x80 << (24 - (len % 4) * 8);
+    const total = (((len + 8) >> 6) + 1) * 16;
+    for (let i = words.length; i < total; i++) words[i] = words[i] | 0;
+    words[total - 1] = len * 8;
+    const r = (x, y) => (x >>> y) | (x << (32 - y));
+    for (let j = 0; j < total; j += 16) {
+      const w = words.slice(j, j + 16); let [a, b, cc, d, e, f, g, h] = H;
+      for (let i = 0; i < 64; i++) {
+        if (i >= 16) { const w15 = w[i - 15], w2 = w[i - 2]; w[i] = (w[i - 16] + (r(w15, 7) ^ r(w15, 18) ^ (w15 >>> 3)) + w[i - 7] + (r(w2, 17) ^ r(w2, 19) ^ (w2 >>> 10))) | 0; }
+        const t1 = (h + (r(e, 6) ^ r(e, 11) ^ r(e, 25)) + ((e & f) ^ (~e & g)) + K[i] + w[i]) | 0;
+        const t2 = ((r(a, 2) ^ r(a, 13) ^ r(a, 22)) + ((a & b) ^ (a & cc) ^ (b & cc))) | 0;
+        h = g; g = f; f = e; e = (d + t1) | 0; d = cc; cc = b; b = a; a = (t1 + t2) | 0;
+      }
+      H[0] = (H[0] + a) | 0; H[1] = (H[1] + b) | 0; H[2] = (H[2] + cc) | 0; H[3] = (H[3] + d) | 0;
+      H[4] = (H[4] + e) | 0; H[5] = (H[5] + f) | 0; H[6] = (H[6] + g) | 0; H[7] = (H[7] + h) | 0;
+    }
+    return H.map((x) => (x >>> 0).toString(16).padStart(8, "0")).join("");
   }
+  async function hash(pw) { return sha256("serin:" + pw); }
   const uid = () => Math.random().toString(36).slice(2, 10);
   const now = () => new Date().toISOString();
 
@@ -27,6 +51,9 @@
   }
 
   const Store = {
+    mode: "local",
+    error: "",
+    async refresh() {},
     TEACHER_CODE,
     get db() { return db; },
 
@@ -122,4 +149,7 @@
 
   load();
   window.Store = Store;
+  // 처음 열 때 시연용 계정 자동 생성 (student / teacher, 비밀번호 1234)
+  const online = window.SERIN_CONFIG && window.SERIN_CONFIG.SUPABASE_URL && window.SERIN_CONFIG.SUPABASE_KEY;
+  Store.ready = db.users.length || online ? Promise.resolve() : Store.seedDemo();
 })();

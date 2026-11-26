@@ -20,7 +20,7 @@ Vygotsky의 근접발달영역(ZPD)·비계설정 개념에 따라, 17주 동안
 ## GitHub Pages로 배포하기 (5분)
 
 1. GitHub에서 **New repository** → 이름 예: `serin-acting-archive` → Public → Create
-2. **uploading an existing file** 클릭 → 이 폴더 안의 파일·폴더 전체(`index.html`, `css`, `js`, `assets`, `.nojekyll`, `README.md`)를 끌어다 놓기 → Commit
+2. **uploading an existing file** 클릭 → 이 폴더 안의 파일·폴더 전체(`index.html`, `css`, `js`, `assets`, `supabase`, `.nojekyll` 등)를 끌어다 놓기 → Commit
 3. **Settings → Pages** → Source: `Deploy from a branch`, Branch: `main` / `(root)` → Save
 4. 1~2분 뒤 `https://<깃허브아이디>.github.io/serin-acting-archive/` 에서 열림
 
@@ -34,15 +34,15 @@ git push -u origin main
 ```
 
 ## 시연 방법
-로그인 화면의 **시연용 계정 만들기** → `student / 1234`(학생), `teacher / 1234`(교사)로 로그인.
+(로컬 시연 모드) `student / 1234`(학생), `teacher / 1234`(교사)로 바로 로그인.
 
-## 알아둘 점 (현재 버전 = 시연용 프로토타입)
-- 데이터는 **각자의 브라우저(localStorage)** 에 저장됩니다. 같은 컴퓨터·브라우저에서는 학생·교사 계정을 오가며 시연할 수 있지만, 다른 기기 간에는 공유되지 않습니다.
-- 백업: 교사 계정 → 수업 설정 → JSON 내보내기/가져오기.
-- 실제 수업에서 여러 학생이 각자 폰으로 쓰려면 `js/store.js`의 저장 부분만 **Supabase**나 **Firebase** 같은 무료 DB로 바꾸면 됩니다(화면 코드는 그대로).
+## 두 가지 모드
+- **온라인 모드 (실제 수업용)** — `js/config.js`에 Supabase 주소·키를 넣으면 모든 기기가 같은 기록을 봅니다. → **`SUPABASE_설정방법.md`** 참고
+- **로컬 시연 모드** — `config.js`를 비워 두면 이 브라우저에만 저장됩니다. 시연용 계정이 자동으로 만들어집니다.
 
 ## 수정 포인트
 - 커리큘럼: `js/curriculum.js`
-- 교사 가입 코드: `js/store.js` 의 `TEACHER_CODE`
+- 교사 가입 코드: 온라인 모드는 교사 계정 → 수업 설정 / 로컬 모드는 `js/store.js` 의 `TEACHER_CODE`
+- Supabase 연결: `js/config.js`
 - 로고: `assets/logo.svg`
 - 색·글꼴: `css/style.css` 맨 위 `:root`
