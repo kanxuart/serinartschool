@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="세린예술고등학교 로고">
+  <defs>
+    <path id="ring" d="M100,100 m-74,0 a74,74 0 1,1 148,0 a74,74 0 1,1 -148,0"/>
+  </defs>
+  <circle cx="100" cy="100" r="96" fill="none" stroke="currentColor" stroke-width="3"/>
+  <circle cx="100" cy="100" r="60" fill="none" stroke="currentColor" stroke-width="1.5"/>
+  <text font-family="'Cormorant Garamond', Georgia, serif" font-size="15" letter-spacing="4.2" fill="currentColor">
+    <textPath href="#ring" startOffset="2%">SERIN ARTS HIGH SCHOOL · EST. 2026 ·</textPath>
+  </text>
+  <!-- curtain -->
+  <path d="M58 70 Q100 58 142 70 L142 76 Q122 92 112 78 Q100 94 88 78 Q78 92 58 76 Z" fill="#8a2b22"/>
+  <path d="M62 78 Q66 110 60 136 L74 136 Q78 104 72 84 Z" fill="#8a2b22" opacity=".85"/>
+  <path d="M138 78 Q134 110 140 136 L126 136 Q122 104 128 84 Z" fill="#8a2b22" opacity=".85"/>
+  <!-- stage line + star -->
+  <line x1="60" y1="138" x2="140" y2="138" stroke="currentColor" stroke-width="2"/>
+  <path d="M100 96 l4.7 9.6 10.6 1.5 -7.7 7.5 1.8 10.5 -9.4 -5 -9.4 5 1.8 -10.5 -7.7 -7.5 10.6 -1.5 Z" fill="currentColor"/>
+  <text x="100" y="156" text-anchor="middle" font-family="'Noto Serif KR', serif" font-weight="700" font-size="13" letter-spacing="3" fill="currentColor">세린예고</text>
+</svg>
