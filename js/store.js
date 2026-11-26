@@ -163,6 +163,14 @@
   load();
   window.Store = Store;
   // 처음 열 때 시연용 계정 자동 생성 (student / teacher, 비밀번호 1234)
-  const online = window.SERIN_CONFIG && window.SERIN_CONFIG.SUPABASE_URL && window.SERIN_CONFIG.SUPABASE_KEY;
-  Store.ready = db.users.length || online ? Promise.resolve() : Store.seedDemo();
+  // 예전 버전이 만들어 둔 예시 계정(김선생·최서린·박하람)과 그 기록을 지웁니다.
+  const DEMO = { teacher: "김선생", student: "최서린", student2: "박하람" };
+  const demoIds = db.users.filter((u) => DEMO[u.username] === u.name).map((u) => u.id);
+  if (demoIds.length) {
+    db.users = db.users.filter((u) => !demoIds.includes(u.id));
+    ["goals", "entries", "reports", "evals"].forEach((k) => demoIds.forEach((id) => db[k] && delete db[k][id]));
+    if (demoIds.includes(localStorage.getItem(SESSION))) localStorage.removeItem(SESSION);
+    save();
+  }
+  Store.ready = Promise.resolve();
 })();

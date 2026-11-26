@@ -10,7 +10,7 @@
   const fmt = (iso) => { const d = new Date(iso); return `${pad(d.getMonth() + 1)}.${pad(d.getDate())}`; };
   const go = (h) => (location.hash = h);
   const week = (n) => C.find((c) => c.week === +n);
-  const logo = (cls = "") => `<img src="assets/logo.svg" alt="세린예고" class="logo ${cls}">`;
+  const logo = (cls = "") => `<img src="assets/logo.svg" alt="세린예술고등학교" class="logo ${cls}">`;
   const avg = (a) => a.reduce((x, y) => x + y, 0) / a.length;
   const num = (v) => (v == null ? "·" : (Math.round(v * 10) / 10).toString());
   const tagsOf = (w) => A.filter((a) => a.week === w).map((a) => a.title);
@@ -79,7 +79,7 @@
     const goal = me.role === "student" ? S.currentGoal(me.id) : null;
     return `
       <header class="top">
-        <a href="${me.role === "teacher" ? "#/teacher" : "#/home"}" class="brand">${logo("sm")}<span><b>세린예고</b><small>ACTING ARCHIVE</small></span></a>
+        <a href="${me.role === "teacher" ? "#/teacher" : "#/home"}" class="brand">${logo("sm")}<span><b>세린예술고등학교</b><small>연기과</small></span></a>
         <nav>${nav.map(([h, t, k]) => `<a href="${h}" class="${active === k ? "on" : ""}">${t}</a>`).join("")}</nav>
         <div class="who"><span>${esc(me.name)} <small>${me.role === "teacher" ? "선생님" : esc(me.group || "")}</small></span><button class="ghost" data-act="logout">로그아웃</button></div>
       </header>
@@ -93,15 +93,24 @@
     const signup = mode === "signup";
     return `
     <div class="auth">
+      <div class="auth-bg" aria-hidden="true"></div>
+      <header class="auth-top">
+        <a href="#/login" class="auth-brand">${logo("sm")}<span><b>세린예술고등학교</b><small>SERIN ARTS HIGH SCHOOL</small></span></a>
+        <span class="auth-portal">연기과 학습 포털</span>
+      </header>
       <section class="auth-cover">
-        ${logo("xl")}
-        <h1>ACTING<br>ARCHIVE</h1>
-        <p class="kicker">세린예술고등학교 연기과</p>
-        <p class="lead">읽고, 만들고, 해석하기.<br>나의 17주를 기록합니다.</p>
-        <ol class="phases">${Object.entries(P).map(([k, v]) => `<li><span>${pad(k)}</span>${esc(v)}</li>`).join("")}</ol>
+        <p class="eyebrow">Department of Acting</p>
+        <h1>세린예술고등학교</h1>
+        <p class="sub">연기과 학습 포털</p>
+        <ul class="feats">
+          <li><b>연습 일지</b><span>매주의 발견을 기록</span></li>
+          <li><b>영상 아카이브</b><span>성장을 영상으로 비교</span></li>
+          <li><b>피드백</b><span>선생님과 1:1로 소통</span></li>
+        </ul>
       </section>
       <section class="auth-form">
-        <div class="tabs"><a href="#/login" class="${signup ? "" : "on"}">로그인</a><a href="#/signup" class="${signup ? "on" : ""}">회원가입</a></div>
+        <p class="auth-hello">${signup ? "계정 만들기" : "다시 오신 것을 환영합니다"}</p>
+        <div class="tabs auth-tabs"><a href="#/login" class="${signup ? "" : "on"}">로그인</a><a href="#/signup" class="${signup ? "on" : ""}">회원가입</a></div>
         ${signup ? `
         <form data-form="signup" class="form">
           <div class="role-pick">
@@ -127,10 +136,9 @@
           <p class="err" data-err></p>
           <button class="primary">로그인</button>
         </form>
-        ${S.mode === "supabase"
-          ? `<p class="muted mode-note">처음이라면 <a href="#/signup">회원가입</a></p>`
-          : `<div class="demo"><p>체험 계정 <code>student</code> · <code>teacher</code> / <code>1234</code></p><button class="ghost" data-act="seed">체험 계정 다시 만들기</button></div>`}`}
+        <p class="muted mode-note">처음이라면 <a href="#/signup">회원가입</a></p>`}
       </section>
+      <footer class="auth-foot"><span>© ${new Date().getFullYear()} 세린예술고등학교 연기과</span><span>학생 · 선생님 공용 로그인</span></footer>
     </div>`;
   }
 
@@ -537,7 +545,6 @@
     const today = new Date().toISOString().slice(0, 10);
     switch (b.dataset.act) {
       case "logout": S.logout(); go("#/login"); render(); break;
-      case "seed": await S.seedDemo(); b.textContent = "완료 · student / 1234"; break;
       case "add-vid": b.previousElementSibling.insertAdjacentHTML("beforeend", vidRow()); break;
       case "rm-vid": b.parentElement.remove(); break;
       case "print": window.print(); break;
