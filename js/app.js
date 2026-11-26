@@ -13,6 +13,9 @@
   const logo = (cls = "") => `<img src="assets/logo.svg" alt="세린예술고등학교" class="logo ${cls}">`;
   const avg = (a) => a.reduce((x, y) => x + y, 0) / a.length;
   const num = (v) => (v == null ? "·" : (Math.round(v * 10) / 10).toString());
+  // 학번 10502 → 1학년 (첫 자리). 학번이 없으면 1학년으로 표시
+  const gradeOf = (u) => { const m = String(u.studentNo || "").match(/^([1-3])\d{3,4}$/); return `${m ? m[1] : 1}학년`; };
+  const stuMeta = (u) => [u.studentNo, `연기과 ${gradeOf(u)}`, u.group].filter(Boolean).map(esc).join(" · ");
   const tagsOf = (w) => A.filter((a) => a.week === w).map((a) => a.title);
 
   function help(h) {
@@ -250,7 +253,7 @@
               <button type="button" class="ghost" data-act="add-vid">+ 추가</button>
             </fieldset>
             <label class="check"><input type="checkbox" name="requestFeedback" ${e.requestFeedback ? "checked" : ""}> 피드백 요청</label>
-            <div class="actions"><span class="saved" data-saved></span><button class="primary">저장</button></div>
+            <div class="actions">${S.entry(me.id, w) ? `<button type="button" class="ghost danger del" data-act="del-entry" data-week="${w}">삭제</button>` : ""}<span class="spacer"></span><button class="primary">저장</button></div>
           </form>
           ${e.videos?.length ? `<div class="vid-grid">${e.videos.map((v) => `<figure>${videoEmbed(v.url)}<figcaption>${esc(v.label || "영상")}</figcaption></figure>`).join("")}</div>` : ""}
           <h3>피드백</h3>${feedbackList(e)}
@@ -293,11 +296,11 @@
     const entries = S.entries(u.id);
     const goals = S.goals(u.id);
     return `
-      <section class="pf-cover">${logo("lg")}<div><p class="kicker">PORTFOLIO</p><h2>${esc(u.name)}</h2><p>${esc(u.studentNo)} · ${esc(u.group)}</p></div></section>
+      <section class="pf-cover">${logo("lg")}<div><p class="kicker">PORTFOLIO</p><h2>${esc(u.name)}</h2><p>${stuMeta(u)}</p></div></section>
       <section><h3>목표의 변화</h3><ol class="goal-tl">${goals.map((g) => `<li><span class="tag">${esc(g.status)} · ${g.week}주</span>${nl(g.text)}</li>`).join("") || "<li class='muted'>없음</li>"}</ol></section>
       <section><h3>자기평가</h3><div class="spark">${C.map((c) => { const s = +entries[c.week]?.selfScore || 0; return `<span style="--h:${s * 20}%" title="${c.week}주: ${s || "-"}"><b>${s || ""}</b><i>${c.week}</i></span>`; }).join("")}</div></section>
       <section><h3>기록</h3>${C.filter((c) => hasContent(entries[c.week])).map((c) => { const e = entries[c.week]; return `
-        <article class="pf-entry"><header><span class="no">No.${pad(c.week)}</span><span>${esc(c.title)}</span></header>
+        <article class="pf-entry"><header><span class="no">No.${pad(c.week)}</span><span>${esc(c.title)}</span>${editable ? `<span class="pf-act noprint"><a href="#/journal/${c.week}">수정</a><button type="button" class="link-btn" data-act="del-entry" data-week="${c.week}">삭제</button></span>` : ""}</header>
           ${e.did ? `<p><b>한 것</b> ${nl(e.did)}</p>` : ""}${e.found ? `<p><b>발견</b> ${nl(e.found)}</p>` : ""}${e.next ? `<p><b>다음</b> ${nl(e.next)}</p>` : ""}
           ${(e.videos || []).map((v) => `<p class="vlink">▶ <a href="${esc(v.url)}" target="_blank" rel="noopener">${esc(v.label || v.url)}</a></p>`).join("")}
           ${(e.feedback || []).map((f) => `<p class="fbq">“${nl(f.text)}”</p>`).join("")}
@@ -334,7 +337,7 @@
   function studentHead(u, tab) {
     const goal = S.currentGoal(u.id);
     return `<p class="back"><a href="#/${tab === "eval" ? "grades" : "teacher"}">← ${tab === "eval" ? "평가" : "학생"}</a></p>
-      <section class="s-head"><div><p class="kicker">${esc(u.group)} · ${esc(u.studentNo)}</p><h2>${esc(u.name)}</h2>
+      <section class="s-head"><div><p class="kicker">${stuMeta(u)}</p><h2>${esc(u.name)}</h2>
         ${goal ? `<p class="goal-line"><span class="tag">${esc(goal.status)}</span>${esc(goal.text)}</p>` : ""}</div>
         <div class="tabs sm"><a href="#/student/${u.id}" class="${tab === "log" ? "on" : ""}">기록</a><a href="#/student/${u.id}/eval" class="${tab === "eval" ? "on" : ""}">평가</a></div>
       </section>`;
@@ -488,7 +491,32 @@
     await S.refresh(); render();
   });
 
-  const flash = (form, msg = "저장됨") => { const el = form && form.querySelector("[data-saved]"); if (el) { el.textContent = msg; setTimeout(() => (el.textContent = ""), 2000); } };
+  // ---------- 알림창 · 확인창 ----------
+  let toastTimer;
+  function toast(msg, kind = "ok") {
+    let el = document.getElementById("toast");
+    if (!el) { el = document.createElement("div"); el.id = "toast"; el.setAttribute("role", "status"); document.body.appendChild(el); }
+    el.className = "toast " + kind;
+    el.innerHTML = `<i>${kind === "ok" ? "✓" : "!"}</i><span>${esc(msg)}</span>`;
+    void el.offsetWidth; el.classList.add("show");
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("show"), 2400);
+  }
+  function confirmBox({ title, body = "", ok = "확인", danger = false }) {
+    return new Promise((resolve) => {
+      const wrap = document.createElement("div");
+      wrap.className = "modal-wrap";
+      wrap.innerHTML = `<div class="modal" role="dialog" aria-modal="true"><h4>${esc(title)}</h4>${body ? `<p>${esc(body)}</p>` : ""}
+        <div class="modal-actions"><button class="ghost" data-m="no">취소</button><button class="primary ${danger ? "danger-fill" : ""}" data-m="yes">${esc(ok)}</button></div></div>`;
+      const close = (v) => { wrap.classList.remove("show"); setTimeout(() => wrap.remove(), 180); document.removeEventListener("keydown", onKey); resolve(v); };
+      const onKey = (e) => { if (e.key === "Escape") close(false); if (e.key === "Enter") close(true); };
+      wrap.addEventListener("click", (e) => { if (e.target === wrap || e.target.dataset.m === "no") close(false); if (e.target.dataset.m === "yes") close(true); });
+      document.addEventListener("keydown", onKey);
+      document.body.appendChild(wrap);
+      requestAnimationFrame(() => wrap.classList.add("show"));
+      wrap.querySelector("[data-m=yes]").focus();
+    });
+  }
+  const flash = (_form, msg) => toast(msg);
   const keepScroll = async (fn) => { const y = window.scrollY; await fn(); window.scrollTo(0, y); };
 
   // ---------- events ----------
@@ -511,21 +539,21 @@
           const u = await S.signup(d);
           go(u.role === "teacher" ? "#/teacher" : "#/welcome"); render(); break;
         }
-        case "goal-draft": await S.addGoal(me.id, d.text, "초안", 1, me.id); render(); break;
-        case "goal-teacher": await keepScroll(async () => { await S.addGoal(f.dataset.uid, d.text, d.status, +d.week, me.id); render(); }); break;
+        case "goal-draft": await S.addGoal(me.id, d.text, "초안", 1, me.id); render(); toast("성장목표를 등록했어요"); break;
+        case "goal-teacher": await keepScroll(async () => { await S.addGoal(f.dataset.uid, d.text, d.status, +d.week, me.id); render(); }); toast("성장목표를 기록했어요"); break;
         case "entry": {
           const labels = [...f.querySelectorAll("[name=vlabel]")].map((i) => i.value.trim());
           const videos = [...f.querySelectorAll("[name=vurl]")].map((i, k) => ({ label: labels[k], url: i.value.trim() })).filter((v) => v.url);
           await S.saveEntry(me.id, +f.dataset.week, { did: d.did, found: d.found, next: d.next, selfScore: d.selfScore ? +d.selfScore : null, videos, requestFeedback: !!d.requestFeedback });
-          render(); flash(document.querySelector("[data-form=entry]")); break;
+          render(); toast(`${f.dataset.week}주 일지를 저장했어요`); break;
         }
-        case "feedback": await S.addFeedback(f.dataset.uid, +f.dataset.week, me.id, d.text); render(); document.getElementById("w" + f.dataset.week)?.scrollIntoView(); break;
-        case "report": await S.saveReport(me.id, d.text); flash(f); break;
+        case "feedback": await S.addFeedback(f.dataset.uid, +f.dataset.week, me.id, d.text); render(); document.getElementById("w" + f.dataset.week)?.scrollIntoView(); toast("피드백을 남겼어요"); break;
+        case "report": await S.saveReport(me.id, d.text); toast("성장 보고서를 저장했어요"); if (btn) { btn.disabled = false; btn.textContent = btn.dataset.label; } break;
         case "eval": {
           const scores = {};
           CR[f.dataset.cat].forEach((c) => { if (d[c]) scores[c] = +d[c]; });
           await keepScroll(async () => { await S.saveEval(f.dataset.uid, f.dataset.key, scores, d.__comment, me.id); render(); });
-          flash(document.querySelector(`[data-form=eval][data-key=${f.dataset.key}]`)); break;
+          toast(`${A.find((a) => a.key === f.dataset.key).title} 평가를 저장했어요`); break;
         }
         case "settings": {
           const weights = {};
@@ -533,10 +561,10 @@
           const sum = Object.values(weights).reduce((x, y) => x + y, 0);
           if (sum !== 100) throw new Error(`평가 비율 합계가 ${sum}이에요. 100으로 맞춰 주세요.`);
           await S.saveSettings({ startDate: d.startDate, teacherCode: d.teacherCode, weights });
-          render(); flash(document.querySelector("[data-form=settings]")); break;
+          render(); toast("설정을 저장했어요"); break;
         }
       }
-    } catch (e) { if (btn && btn.isConnected) { btn.disabled = false; btn.textContent = btn.dataset.label; } if (err) { err.textContent = e.message; err.classList.remove("shake"); void err.offsetWidth; err.classList.add("shake"); } else alert(e.message); }
+    } catch (e) { if (btn && btn.isConnected) { btn.disabled = false; btn.textContent = btn.dataset.label; } if (err) { err.textContent = e.message; err.classList.remove("shake"); void err.offsetWidth; err.classList.add("shake"); } else toast(e.message, "error"); }
   });
 
   $app.addEventListener("click", async (ev) => {
@@ -550,7 +578,19 @@
       case "print": window.print(); break;
       case "export": download(S.exportJSON(), `serin-archive-${today}.json`, "application/json"); break;
       case "csv": download(csv(), `세린예고_연기_성적_${today}.csv`, "text/csv"); break;
-      case "reset": if (confirm("모든 계정과 기록이 삭제됩니다. 계속할까요?")) { S.reset(); go("#/login"); render(); } break;
+      case "reset":
+        if (await confirmBox({ title: "모든 데이터를 초기화할까요?", body: "모든 계정과 기록이 삭제되고 되돌릴 수 없어요.", ok: "초기화", danger: true })) { S.reset(); go("#/login"); render(); toast("초기화했어요"); }
+        break;
+      case "del-entry": {
+        const w = +b.dataset.week;
+        const e = S.entry(S.me().id, w);
+        const fb = e?.feedback?.length || 0;
+        const ok = await confirmBox({ title: `${w}주 일지를 삭제할까요?`, body: `쓴 글과 영상 링크${fb ? `, 선생님 피드백 ${fb}개` : ""}가 함께 지워지고 되돌릴 수 없어요.`, ok: "삭제", danger: true });
+        if (!ok) break;
+        try { await S.deleteEntry(S.me().id, w); render(); toast(`${w}주 일지를 삭제했어요`); }
+        catch (err) { toast(err.message, "error"); }
+        break;
+      }
     }
   });
 
@@ -569,7 +609,7 @@
       f.querySelector(".pts").textContent = num(evalPct({ scores }, f.dataset.cat));
     }
     if (t.dataset.act === "import" && t.files[0]) {
-      t.files[0].text().then((x) => { try { S.importJSON(x); alert("가져왔습니다."); render(); } catch (e) { alert(e.message); } });
+      t.files[0].text().then((x) => { try { S.importJSON(x); render(); toast("가져왔어요"); } catch (e) { toast(e.message, "error"); } });
     }
   });
 

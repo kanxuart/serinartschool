@@ -118,6 +118,10 @@
       await rpc("api_save_entry", { p_token: token(), p_week: +week, p_data: rest, p_request: !!requestFeedback });
       await this.refresh();
     },
+    async deleteEntry(_userId, week) {
+      await rpc("api_delete_entry", { p_token: token(), p_week: +week });
+      await this.refresh();
+    },
     async addFeedback(userId, week, _byId, text) {
       await rpc("api_add_feedback", { p_token: token(), p_user_id: userId, p_week: +week, p_text: text });
       await this.refresh();

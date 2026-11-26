@@ -236,6 +236,17 @@ begin
      set data = excluded.data, request_feedback = excluded.request_feedback, updated_at = now();
 end $$;
 
+create or replace function public.api_delete_entry(p_token uuid, p_week int)
+returns void
+language plpgsql security definer set search_path = public, extensions as $$
+declare me public.app_users;
+begin
+  me := public._me(p_token);
+  if me.role <> 'student' then raise exception '일지는 학생 본인만 삭제할 수 있습니다.'; end if;
+  delete from public.entries  where user_id = me.id and week = p_week;
+  delete from public.feedback where user_id = me.id and week = p_week;
+end $$;
+
 create or replace function public.api_add_feedback(p_token uuid, p_user_id uuid, p_week int, p_text text)
 returns void
 language plpgsql security definer set search_path = public, extensions as $$

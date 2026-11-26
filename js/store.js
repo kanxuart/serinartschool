@@ -100,6 +100,10 @@
       save();
       return all[week];
     },
+    deleteEntry(userId, week) {
+      if (db.entries[userId]) delete db.entries[userId][week];
+      save();
+    },
     addFeedback(userId, week, byId, text) {
       const e = this.entry(userId, week) || this.saveEntry(userId, week, {});
       e.feedback = e.feedback || [];

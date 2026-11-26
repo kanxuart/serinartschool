@@ -446,3 +446,27 @@ h2 { font-weight: 700; } h3 { font-weight: 600; } h4 { font-weight: 600; }
   .auth-foot { flex-direction: column; gap: .3rem; text-align: center; }
 }
 .auth-form .err:empty { min-height: 0; margin: -.5rem 0 0; }
+
+/* ---- v6: 알림창 · 확인창 · 삭제 ---- */
+.toast { position: fixed; left: 50%; bottom: 2rem; transform: translate(-50%, 20px); opacity: 0; pointer-events: none; z-index: 100;
+  display: flex; align-items: center; gap: .7rem; background: var(--ink); color: #fff; padding: .85rem 1.3rem .85rem .9rem; border-radius: 999px;
+  font: 500 .92rem var(--sans); box-shadow: 0 12px 40px rgba(0, 0, 0, .25); transition: opacity .2s, transform .25s; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast i { display: grid; place-items: center; width: 1.5rem; height: 1.5rem; border-radius: 50%; background: #3f8f52; font: 700 .8rem var(--sans); font-style: normal; }
+.toast.error i { background: var(--red); }
+.modal-wrap { position: fixed; inset: 0; z-index: 90; background: rgba(20, 18, 15, .45); display: grid; place-items: center; padding: 1rem; opacity: 0; transition: opacity .18s; }
+.modal-wrap.show { opacity: 1; }
+.modal { background: var(--card); border-radius: 14px; padding: 1.6rem 1.6rem 1.3rem; width: min(400px, 100%); box-shadow: 0 30px 80px rgba(0, 0, 0, .3); transform: translateY(8px); transition: transform .2s; }
+.modal-wrap.show .modal { transform: none; }
+.modal h4 { font: 700 1.1rem var(--sans); margin: 0 0 .5rem; letter-spacing: -.02em; }
+.modal p { margin: 0 0 1.3rem; color: var(--ink-2); font-size: .9rem; }
+.modal-actions { display: flex; justify-content: flex-end; gap: .5rem; }
+.modal button { border-radius: 8px; }
+.danger-fill { background: var(--red) !important; border-color: var(--red) !important; }
+.actions .spacer { flex: 1; }
+.ghost.danger.del { padding: .55em 1em; font-weight: 500; }
+.ghost.danger.del:hover { background: var(--red-soft); }
+.pf-entry header { align-items: center; }
+.pf-act { margin-left: auto; display: flex; gap: .8rem; font-size: .78rem; }
+.pf-act a { color: var(--ink-2); }
+.link-btn { background: none; border: 0; padding: 0; color: var(--red); font: inherit; text-decoration: underline; cursor: pointer; }
