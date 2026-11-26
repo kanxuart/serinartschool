@@ -16,6 +16,10 @@
   // 학번 10502 → 1학년 (첫 자리). 학번이 없으면 1학년으로 표시
   const gradeOf = (u) => { const m = String(u.studentNo || "").match(/^([1-3])\d{3,4}$/); return `${m ? m[1] : 1}학년`; };
   const stuMeta = (u) => [u.studentNo, `연기과 ${gradeOf(u)}`, u.group].filter(Boolean).map(esc).join(" · ");
+  // 프로필 사진 (없으면 이름 첫 글자)
+  const avatar = (u, size = "sm") => u && u.avatar
+    ? `<img class="av ${size}" src="${esc(u.avatar)}" alt="${esc(u.name)}">`
+    : `<span class="av ${size} none" aria-hidden="true">${esc((u?.name || "?").slice(0, 1))}</span>`;
   const tagsOf = (w) => A.filter((a) => a.week === w).map((a) => a.title);
 
   function help(h) {
@@ -84,7 +88,7 @@
       <header class="top">
         <a href="${me.role === "teacher" ? "#/teacher" : "#/home"}" class="brand">${logo("sm")}<span><b>세린예술고등학교</b><small>연기과</small></span></a>
         <nav>${nav.map(([h, t, k]) => `<a href="${h}" class="${active === k ? "on" : ""}">${t}</a>`).join("")}</nav>
-        <div class="who"><span>${esc(me.name)} <small>${me.role === "teacher" ? "선생님" : esc(me.group || "")}</small></span><button class="ghost" data-act="logout">로그아웃</button></div>
+        <div class="who">${me.role === "student" ? `<a href="#/portfolio" class="who-av" title="내 사진 바꾸기">${avatar(me, "xs")}</a>` : ""}<span>${esc(me.name)} <small>${me.role === "teacher" ? "선생님" : esc(me.group || "")}</small></span><button class="ghost" data-act="logout">로그아웃</button></div>
       </header>
       ${goal ? `<a href="#/welcome" class="ribbon"><span class="tag">목표</span>${esc(goal.text)}</a>` : ""}
       <main class="wrap">${body}</main>
@@ -296,7 +300,13 @@
     const entries = S.entries(u.id);
     const goals = S.goals(u.id);
     return `
-      <section class="pf-cover">${logo("lg")}<div><p class="kicker">PORTFOLIO</p><h2>${esc(u.name)}</h2><p>${stuMeta(u)}</p></div></section>
+      <section class="pf-cover">
+        <div class="pf-av"><figure class="print">${avatar(u, "xl")}<figcaption>PROFILE</figcaption></figure>
+          ${editable ? `<div class="av-tools noprint"><label class="ghost btn sm">${u.avatar ? "사진 변경" : "사진 올리기"}<input type="file" accept="image/*" data-act="avatar" hidden></label>${u.avatar ? `<button type="button" class="link-btn" data-act="avatar-del">삭제</button>` : ""}</div>` : ""}
+        </div>
+        <div><p class="kicker">PORTFOLIO</p><h2>${esc(u.name)}</h2><p>${stuMeta(u)}</p></div>
+        ${logo("md pf-logo")}
+      </section>
       <section><h3>목표의 변화</h3><ol class="goal-tl">${goals.map((g) => `<li><span class="tag">${esc(g.status)} · ${g.week}주</span>${nl(g.text)}</li>`).join("") || "<li class='muted'>없음</li>"}</ol></section>
       <section><h3>자기평가</h3><div class="spark">${C.map((c) => { const s = +entries[c.week]?.selfScore || 0; return `<span style="--h:${s * 20}%" title="${c.week}주: ${s || "-"}"><b>${s || ""}</b><i>${c.week}</i></span>`; }).join("")}</div></section>
       <section><h3>기록</h3>${C.filter((c) => hasContent(entries[c.week])).map((c) => { const e = entries[c.week]; return `
@@ -326,7 +336,7 @@
       ${requests.length ? `<div class="req"><h4>피드백 요청 ${requests.length}</h4>${requests.map(({ u, w }) => `<a href="#/student/${u.id}#w${w}">${esc(u.name)} · ${w}주</a>`).join("")}</div>` : ""}</section>
       <table class="tbl"><thead><tr><th>조</th><th>학번</th><th>이름</th><th>목표</th><th>일지</th><th>이번 주</th><th>총점</th><th></th></tr></thead><tbody>
       ${list.map((u) => { const g = S.currentGoal(u.id); const r = calc(u.id); const st = entryStatus(u.id, cw); return `<tr>
-        <td>${esc(u.group)}</td><td>${esc(u.studentNo)}</td><td><b>${esc(u.name)}</b></td>
+        <td>${esc(u.group)}</td><td>${esc(u.studentNo)}</td><td><a href="#/student/${u.id}" class="name-cell">${avatar(u, "xs")}<b>${esc(u.name)}</b></a></td>
         <td class="goal-cell">${g ? `<span class="tag">${esc(g.status)}</span> ${esc(g.text)}` : `<span class="muted">—</span>`}</td>
         <td>${r.written}</td><td><span class="pill st-${st}">${STATUS_LABEL[st]}</span></td>
         <td><a href="#/student/${u.id}/eval">${r.total == null ? "·" : `${num(r.total)} <span class="grade g-${r.grade}">${r.grade}</span>`}</a></td>
@@ -337,8 +347,8 @@
   function studentHead(u, tab) {
     const goal = S.currentGoal(u.id);
     return `<p class="back"><a href="#/${tab === "eval" ? "grades" : "teacher"}">← ${tab === "eval" ? "평가" : "학생"}</a></p>
-      <section class="s-head"><div><p class="kicker">${stuMeta(u)}</p><h2>${esc(u.name)}</h2>
-        ${goal ? `<p class="goal-line"><span class="tag">${esc(goal.status)}</span>${esc(goal.text)}</p>` : ""}</div>
+      <section class="s-head"><div class="s-id">${avatar(u, "lg")}<div><p class="kicker">${stuMeta(u)}</p><h2>${esc(u.name)}</h2>
+        ${goal ? `<p class="goal-line"><span class="tag">${esc(goal.status)}</span>${esc(goal.text)}</p>` : ""}</div></div>
         <div class="tabs sm"><a href="#/student/${u.id}" class="${tab === "log" ? "on" : ""}">기록</a><a href="#/student/${u.id}/eval" class="${tab === "eval" ? "on" : ""}">평가</a></div>
       </section>`;
   }
@@ -418,7 +428,7 @@
         <tr><th>①</th><th>②</th><th>③</th><th>①</th><th>②</th><th>③</th><th class="sep">기본기</th><th>장면</th><th>과정</th><th>보고서</th></tr>
       </thead><tbody>
       ${list.map((u) => { const r = calc(u.id); return `<tr>
-        <td>${esc(u.group)}</td><td>${esc(u.studentNo)}</td><td><a href="#/student/${u.id}/eval"><b>${esc(u.name)}</b></a></td>
+        <td>${esc(u.group)}</td><td>${esc(u.studentNo)}</td><td><a href="#/student/${u.id}/eval" class="name-cell">${avatar(u, "xs")}<b>${esc(u.name)}</b></a></td>
         ${A.map((a) => `<td class="n">${num(r.each[a.key])}</td>`).join("")}
         ${Object.keys(CAT).map((k, i) => `<td class="n ${i === 0 ? "sep" : ""}">${num(r.cat[k])}</td>`).join("")}
         <td class="n"><b>${num(r.total)}</b></td><td>${r.grade ? `<span class="grade g-${r.grade}">${r.grade}</span>` : "·"}</td></tr>`; }).join("") || `<tr><td colspan="17" class="muted">아직 가입한 학생이 없어요.</td></tr>`}
@@ -517,6 +527,29 @@
     });
   }
   const flash = (_form, msg) => toast(msg);
+
+  // 사진을 배우 프로필처럼 세로 3:4로 잘라 작게 줄입니다 (약 10~20KB).
+  function resizeImage(file, W = 300, H = 400) {
+    return new Promise((resolve, reject) => {
+      if (!file.type.startsWith("image/")) return reject(new Error("이미지 파일만 올릴 수 있어요."));
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const iw = img.naturalWidth, ih = img.naturalHeight;
+        const sw = Math.min(iw, ih * W / H), sh = sw * H / W;
+        const sx = (iw - sw) / 2, sy = (ih - sh) * 0.3; // 얼굴이 위쪽에 오도록 살짝 위를 기준으로
+        const c = document.createElement("canvas"); c.width = W; c.height = H;
+        const g = c.getContext("2d");
+        g.fillStyle = "#fff"; g.fillRect(0, 0, W, H);
+        g.imageSmoothingQuality = "high";
+        g.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
+        URL.revokeObjectURL(url);
+        resolve(c.toDataURL("image/jpeg", 0.82));
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("사진을 열 수 없어요. JPG나 PNG로 올려 주세요.")); };
+      img.src = url;
+    });
+  }
   const keepScroll = async (fn) => { const y = window.scrollY; await fn(); window.scrollTo(0, y); };
 
   // ---------- events ----------
@@ -581,6 +614,11 @@
       case "reset":
         if (await confirmBox({ title: "모든 데이터를 초기화할까요?", body: "모든 계정과 기록이 삭제되고 되돌릴 수 없어요.", ok: "초기화", danger: true })) { S.reset(); go("#/login"); render(); toast("초기화했어요"); }
         break;
+      case "avatar-del":
+        if (await confirmBox({ title: "프로필 사진을 삭제할까요?", ok: "삭제", danger: true })) {
+          try { await S.setAvatar(S.me().id, ""); render(); toast("프로필 사진을 삭제했어요"); } catch (e) { toast(e.message, "error"); }
+        }
+        break;
       case "del-entry": {
         const w = +b.dataset.week;
         const e = S.entry(S.me().id, w);
@@ -607,6 +645,12 @@
       const d = Object.fromEntries(new FormData(f));
       const scores = {}; CR[f.dataset.cat].forEach((c) => d[c] && (scores[c] = +d[c]));
       f.querySelector(".pts").textContent = num(evalPct({ scores }, f.dataset.cat));
+    }
+    if (t.dataset.act === "avatar" && t.files[0]) {
+      resizeImage(t.files[0])
+        .then((data) => S.setAvatar(S.me().id, data))
+        .then(() => { render(); toast("프로필 사진을 바꿨어요"); })
+        .catch((e) => toast(e.message, "error"));
     }
     if (t.dataset.act === "import" && t.files[0]) {
       t.files[0].text().then((x) => { try { S.importJSON(x); render(); toast("가져왔어요"); } catch (e) { toast(e.message, "error"); } });

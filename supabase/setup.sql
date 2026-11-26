@@ -80,6 +80,8 @@ create table if not exists public.evaluations (
 alter table public.app_settings add column if not exists weights jsonb not null
   default '{"basics":30,"scene":40,"process":20,"report":10}'::jsonb;
 
+alter table public.app_users add column if not exists avatar text not null default '';
+
 create index if not exists goals_user_idx on public.goals(user_id);
 create index if not exists feedback_user_idx on public.feedback(user_id, week);
 
@@ -97,7 +99,7 @@ alter table public.evaluations  enable row level security;
 create or replace function public._user_json(u public.app_users)
 returns json language sql stable as $$
   select json_build_object('id', u.id, 'username', u.username, 'name', u.name,
-                           'studentNo', u.student_no, 'group', u.grp, 'role', u.role);
+                           'studentNo', u.student_no, 'group', u.grp, 'role', u.role, 'avatar', u.avatar);
 $$;
 
 create or replace function public._me(p_token uuid)
@@ -234,6 +236,19 @@ begin
   values (me.id, p_week, coalesce(p_data, '{}'::jsonb), coalesce(p_request, false))
   on conflict (user_id, week) do update
      set data = excluded.data, request_feedback = excluded.request_feedback, updated_at = now();
+end $$;
+
+create or replace function public.api_set_avatar(p_token uuid, p_avatar text)
+returns void
+language plpgsql security definer set search_path = public, extensions as $$
+declare me public.app_users;
+begin
+  me := public._me(p_token);
+  p_avatar := coalesce(p_avatar, '');
+  if p_avatar <> '' and (p_avatar !~ '^data:image/(jpeg|png|webp);base64,' or length(p_avatar) > 120000) then
+    raise exception '사진 형식이 올바르지 않거나 너무 큽니다.';
+  end if;
+  update public.app_users set avatar = p_avatar where id = me.id;
 end $$;
 
 create or replace function public.api_delete_entry(p_token uuid, p_week int)

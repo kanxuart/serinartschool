@@ -85,6 +85,10 @@
       db = EMPTY;
       if (t) rpc("api_logout", { p_token: t }).catch(() => {});
     },
+    async setAvatar(_userId, dataUrl) {
+      await rpc("api_set_avatar", { p_token: token(), p_avatar: dataUrl || "" });
+      await this.refresh();
+    },
     me() { return db.me; },
     user(id) { return db.users.find((u) => u.id === id); },
     students() { return db.users.filter((u) => u.role === "student"); },

@@ -78,6 +78,10 @@
     },
     setSession(id) { localStorage.setItem(SESSION, id); },
     logout() { localStorage.removeItem(SESSION); },
+    setAvatar(userId, dataUrl) {
+      const u = db.users.find((x) => x.id === userId);
+      if (u) { u.avatar = dataUrl || ""; save(); }
+    },
     me() { const id = localStorage.getItem(SESSION); return db.users.find((u) => u.id === id) || null; },
     user(id) { return db.users.find((u) => u.id === id); },
     students() { return db.users.filter((u) => u.role === "student").sort((a, b) => (a.group + a.studentNo).localeCompare(b.group + b.studentNo)); },
