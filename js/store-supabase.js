@@ -31,11 +31,12 @@
     return body;
   }
 
-  const EMPTY = { me: null, users: [], goals: {}, entries: {}, reports: {}, settings: { startDate: "2027-03-02", className: "연기 · 국어 융합수업" } };
+  const EMPTY = { me: null, users: [], goals: {}, entries: {}, reports: {}, evals: {}, settings: { startDate: "2027-03-02" } };
   let db = EMPTY;
 
   function assemble(s) {
-    const d = { me: s.me, users: s.users || [], goals: {}, entries: {}, reports: {}, settings: s.settings || EMPTY.settings };
+    const d = { me: s.me, users: s.users || [], goals: {}, entries: {}, reports: {}, evals: {}, settings: s.settings || EMPTY.settings };
+    (s.evals || []).forEach((v) => ((d.evals[v.userId] ||= {})[v.key] = { scores: v.scores || {}, comment: v.comment, by: v.by, at: v.at }));
     (s.goals || []).forEach((g) => (d.goals[g.userId] ||= []).push(g));
     (s.entries || []).forEach((e) => {
       (d.entries[e.userId] ||= {})[e.week] = { ...(e.data || {}), requestFeedback: e.requestFeedback, createdAt: e.createdAt, updatedAt: e.updatedAt, feedback: [] };
@@ -100,7 +101,14 @@
       return Math.min(17, Math.max(1, diff || 1));
     },
 
+    evals(userId) { return db.evals[userId] || {}; },
+    weights() { return { ...window.DEFAULT_WEIGHTS, ...(db.settings.weights || {}) }; },
+
     // ---------- 쓰기 ----------
+    async saveEval(userId, key, scores, comment) {
+      await rpc("api_save_eval", { p_token: token(), p_user_id: userId, p_key: key, p_scores: scores, p_comment: comment || "" });
+      await this.refresh();
+    },
     async addGoal(userId, text, status, week) {
       await rpc("api_add_goal", { p_token: token(), p_user_id: userId, p_text: text, p_status: status, p_week: week });
       await this.refresh();
@@ -119,7 +127,7 @@
       await this.refresh();
     },
     async saveSettings(s) {
-      await rpc("api_save_settings", { p_token: token(), p_start_date: s.startDate || null, p_class_name: s.className || null, p_teacher_code: s.teacherCode || null });
+      await rpc("api_save_settings", { p_token: token(), p_start_date: s.startDate || null, p_class_name: s.className || null, p_teacher_code: s.teacherCode || null, p_weights: s.weights || null });
       await this.refresh();
     },
 

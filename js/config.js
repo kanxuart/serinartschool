@@ -5,6 +5,6 @@
 //    ※ service_role / secret 키는 절대 넣지 마세요.
 // 둘 다 비워 두면 '로컬 시연 모드'(이 브라우저에만 저장)로 동작합니다.
 window.SERIN_CONFIG = {
-  SUPABASE_URL: "https://hhsodpfnhmzjoihicdeh.supabase.co",
-  SUPABASE_KEY: "sb_publishable_QijcwUC_OpuQsA5bsl_vUQ_0HsrqneP",
+  SUPABASE_URL: "",
+  SUPABASE_KEY: "",
 };

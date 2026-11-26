@@ -264,3 +264,64 @@ figcaption { font-size: .82rem; margin-top: .4rem; font-family: var(--serif); }
 @keyframes shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
 .mode-note { margin-top: 2rem; font-size: .82rem; }
 button:disabled { opacity: .6; cursor: wait; }
+
+/* ---- v2: 짧은 문구 · 평가 ---- */
+.card .ttl { font: 700 1.05rem/1.35 var(--serif); }
+.card .act { font: 400 .82rem/1.5 var(--sans); color: var(--ink-2); -webkit-line-clamp: 2; }
+.todo { font-family: var(--serif); }
+.meta-line .todo { color: var(--ink); font-size: 1rem; }
+.pill.eval { border-color: var(--red); color: var(--red); font-weight: 600; }
+.wk-title { font: 700 1.35rem/1.3 var(--serif); margin: .2rem 0 .3rem; }
+.week-info .todo { color: var(--ink-2); margin: 0 0 .8rem; }
+.back { margin: 0 0 1rem; font-size: .88rem; }
+.s-head { display: flex; justify-content: space-between; align-items: end; gap: 1.5rem; border-bottom: 1px solid var(--ink); padding-bottom: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.s-head h2 { margin: 0 0 .3rem; }
+.goal-line { font-family: var(--serif); margin: 0; max-width: 60ch; }
+.tabs.sm { margin: 0; border: 0; gap: 1rem; }
+.tabs.sm a { font-size: 1rem; }
+.goal-form { max-width: 640px; margin-bottom: 2rem; }
+.t-entry header > span:nth-child(2) { display: grid; }
+.t-title { font: 700 .95rem var(--serif); color: var(--ink) !important; margin: 0 !important; }
+.t-entry header small { font-size: .75rem; }
+
+.eval-sum { display: grid; grid-template-columns: repeat(4, 1fr) 1.4fr; border: 1px solid var(--ink); background: var(--card); margin-bottom: .6rem; }
+.eval-sum > div { padding: 1rem 1.2rem; border-right: 1px solid var(--ink); display: grid; align-content: start; gap: .1rem; }
+.eval-sum > div:last-child { border: 0; }
+.eval-sum dt { font: .72rem var(--mono); color: var(--ink-2); }
+.eval-sum dd { margin: 0; font: 900 2rem/1.1 var(--serif); }
+.eval-sum small { font: .72rem var(--mono); color: var(--ink-2); }
+.eval-sum .total { background: var(--ink); color: var(--paper); grid-template-columns: 1fr auto; align-items: center; }
+.eval-sum .total dt, .eval-sum .total small { color: #cfc6b5; grid-column: 1 / -1; }
+.eval-sum .total dd { font-size: 2.6rem; }
+.up { color: #2f6b3a !important; } .down { color: var(--red) !important; }
+.legend { font-size: .75rem; margin: .4rem 0 0; }
+.eval-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+.eval-card { background: var(--card); border: 1px solid var(--line); padding: 1rem 1.1rem; display: grid; gap: .55rem; }
+.eval-card.done { border-color: var(--ink); }
+.eval-card header { display: flex; align-items: baseline; gap: .6rem; border-bottom: 1px solid var(--line); padding-bottom: .5rem; }
+.eval-card header b { font: 700 1.05rem var(--serif); }
+.eval-card header span { font: .72rem var(--mono); color: var(--ink-2); flex: 1; }
+.eval-card .pts { font: 900 1.5rem var(--serif); font-style: normal; }
+.vlinks { margin: 0; font-size: .8rem; display: flex; gap: .8rem; flex-wrap: wrap; }
+.crit { display: flex; justify-content: space-between; align-items: center; gap: .5rem; font-size: .88rem; }
+.score.sm { gap: .3rem; }
+.score.sm span { width: 1.9rem; height: 1.9rem; font-size: .8rem; }
+.eval-card textarea { font-size: .88rem; }
+.eval-card .actions { margin-top: -.2rem; }
+.eval-card button { padding: .45em 1em; }
+.grade { display: inline-grid; place-items: center; width: 1.6rem; height: 1.6rem; border-radius: 50%; font: 700 .78rem var(--mono); border: 1.5px solid currentColor; }
+.grade.big { width: 3rem; height: 3rem; font-size: 1.3rem; background: var(--paper); color: var(--ink); border: 0; }
+.g-A { color: #2f6b3a; } .g-B { color: #3d5a80; } .g-C { color: var(--gold); } .g-D, .g-E { color: var(--red); }
+.tbl-wrap { overflow-x: auto; }
+.tbl.grades th, .tbl.grades td { text-align: center; padding: .55rem .45rem; white-space: nowrap; }
+.tbl.grades td:nth-child(3) { text-align: left; }
+.tbl.grades .n { font: .85rem var(--mono); }
+.tbl.grades .sep { border-left: 1px solid var(--ink); }
+.tbl.grades thead tr:first-child th { border-bottom: 1px solid var(--line); }
+.weights label { min-width: 90px; }
+.hero.slim { align-items: end; }
+@media (max-width: 860px) {
+  .eval-sum { grid-template-columns: 1fr 1fr; }
+  .eval-sum > div { border-bottom: 1px solid var(--ink); }
+  .eval-sum .total { grid-column: 1 / -1; }
+}

@@ -68,6 +68,18 @@ create table if not exists public.app_settings (
 );
 insert into public.app_settings (id) values (1) on conflict (id) do nothing;
 
+create table if not exists public.evaluations (
+  user_id     uuid not null references public.app_users(id) on delete cascade,
+  key         text not null check (key ~ '^[a-z0-9]{1,8}$'),
+  scores      jsonb not null default '{}'::jsonb,
+  comment     text not null default '',
+  by_id       uuid references public.app_users(id) on delete set null,
+  updated_at  timestamptz not null default now(),
+  primary key (user_id, key)
+);
+alter table public.app_settings add column if not exists weights jsonb not null
+  default '{"basics":30,"scene":40,"process":20,"report":10}'::jsonb;
+
 create index if not exists goals_user_idx on public.goals(user_id);
 create index if not exists feedback_user_idx on public.feedback(user_id, week);
 
@@ -79,6 +91,7 @@ alter table public.entries      enable row level security;
 alter table public.feedback     enable row level security;
 alter table public.reports      enable row level security;
 alter table public.app_settings enable row level security;
+alter table public.evaluations  enable row level security;
 
 -- ---------- 내부 도우미 ----------
 create or replace function public._user_json(u public.app_users)
@@ -181,8 +194,12 @@ begin
     'reports', coalesce((
       select json_agg(json_build_object('userId', r.user_id, 'text', r.text))
         from public.reports r where is_t or r.user_id = me.id), '[]'::json),
+    'evals', case when is_t then coalesce((
+      select json_agg(json_build_object('userId', v.user_id, 'key', v.key, 'scores', v.scores,
+                                        'comment', v.comment, 'by', v.by_id, 'at', v.updated_at))
+        from public.evaluations v), '[]'::json) else '[]'::json end,
     'settings', (
-      select json_build_object('startDate', s.start_date, 'className', s.class_name,
+      select json_build_object('startDate', s.start_date, 'className', s.class_name, 'weights', s.weights,
                                'teacherCode', case when is_t then s.teacher_code end)
         from public.app_settings s where s.id = 1)
   );
@@ -242,7 +259,25 @@ begin
   on conflict (user_id) do update set text = excluded.text, updated_at = now();
 end $$;
 
-create or replace function public.api_save_settings(p_token uuid, p_start_date date, p_class_name text, p_teacher_code text default null)
+create or replace function public.api_save_eval(p_token uuid, p_user_id uuid, p_key text, p_scores jsonb, p_comment text default '')
+returns void
+language plpgsql security definer set search_path = public, extensions as $$
+declare me public.app_users;
+begin
+  me := public._me(p_token);
+  if me.role <> 'teacher' then raise exception '평가는 선생님만 할 수 있습니다.'; end if;
+  if not exists (select 1 from public.app_users where id = p_user_id and role = 'student') then
+    raise exception '학생을 찾을 수 없습니다.';
+  end if;
+  insert into public.evaluations (user_id, key, scores, comment, by_id)
+  values (p_user_id, p_key, coalesce(p_scores, '{}'::jsonb), coalesce(p_comment, ''), me.id)
+  on conflict (user_id, key) do update
+     set scores = excluded.scores, comment = excluded.comment, by_id = excluded.by_id, updated_at = now();
+end $$;
+
+drop function if exists public.api_save_settings(uuid, date, text, text);
+create or replace function public.api_save_settings(p_token uuid, p_start_date date, p_class_name text,
+                                                    p_teacher_code text default null, p_weights jsonb default null)
 returns void
 language plpgsql security definer set search_path = public, extensions as $$
 declare me public.app_users;
@@ -252,7 +287,8 @@ begin
   update public.app_settings
      set start_date = coalesce(p_start_date, start_date),
          class_name = coalesce(nullif(trim(p_class_name), ''), class_name),
-         teacher_code = coalesce(nullif(trim(p_teacher_code), ''), teacher_code)
+         teacher_code = coalesce(nullif(trim(p_teacher_code), ''), teacher_code),
+         weights = coalesce(p_weights, weights)
    where id = 1;
 end $$;
 

@@ -37,7 +37,7 @@
   const now = () => new Date().toISOString();
 
   function empty() {
-    return { users: [], goals: {}, entries: {}, reports: {}, settings: { startDate: "2027-03-02", className: "연기 · 국어 융합수업" } };
+    return { users: [], goals: {}, entries: {}, reports: {}, evals: {}, settings: { startDate: "2027-03-02", weights: { ...window.DEFAULT_WEIGHTS } } };
   }
 
   let db;
@@ -112,6 +112,15 @@
     report(userId) { return db.reports[userId] || ""; },
     saveReport(userId, text) { db.reports[userId] = text; save(); },
 
+    // ---------- 평가 (교사 전용) ----------
+    evals(userId) { return (db.evals || {})[userId] || {}; },
+    saveEval(userId, key, scores, comment, byId) {
+      db.evals ||= {};
+      (db.evals[userId] ||= {})[key] = { scores, comment: comment || "", by: byId, at: now() };
+      save();
+    },
+    weights() { return { ...window.DEFAULT_WEIGHTS, ...(db.settings.weights || {}) }; },
+
     // ---------- 설정 / 백업 ----------
     saveSettings(s) { db.settings = { ...db.settings, ...s }; save(); },
     currentWeek() {
@@ -143,6 +152,10 @@
       };
       db.entries[S2.id] = { 1: { did: "OT, 사이트 가입", found: "긴장됨", next: "목표 정하기", selfScore: 1, videos: [], feedback: [], requestFeedback: true, createdAt: now(), updatedAt: now() } };
       db.reports[S.id] = "";
+      db.evals = db.evals || {};
+      db.evals[S.id] = {
+        f1: { scores: { "호흡·발성": 3, "발음·화술": 4, "몸·움직임": 3, "집중·반응": 4 }, comment: "긴 문장 끝 호흡 관리가 과제.", by: T.id, at: now() },
+      };
       save();
     },
   };
